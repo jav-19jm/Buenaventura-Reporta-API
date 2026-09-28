@@ -11,6 +11,9 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Tymon\JWTAuth\Contracts\JWTSubject;
@@ -88,6 +91,29 @@ class User extends Authenticatable implements JWTSubject, MustVerifyEmail
     protected function email(): Attribute
     {
         return Attribute::make(set: fn (string $value) => mb_strtolower(trim($value)));
+    }
+
+    public function reportes(): HasMany
+    {
+        return $this->hasMany(Reporte::class, 'id_usuario');
+    }
+
+    public function notificaciones(): HasMany
+    {
+        return $this->hasMany(Notificacion::class, 'id_usuario');
+    }
+
+    public function insignias(): BelongsToMany
+    {
+        return $this->belongsToMany(Insignia::class, 'insignias_usuarios', 'id_usuario', 'id_insignia')
+            ->using(InsigniaUsuario::class)
+            ->withPivot('id', 'fecha_obtencion');
+    }
+
+    /** Entidad que gestiona una cuenta con rol "entidad" */
+    public function entidad(): BelongsTo
+    {
+        return $this->belongsTo(Entidad::class, 'id_entidad');
     }
 
     public function estaActivo(): bool
