@@ -1,12 +1,9 @@
 <?php
 
 use App\Http\Controllers\AuthController;
-use Illuminate\Http\Request;
+use App\Http\Controllers\EmailVerificationController;
+use App\Http\Controllers\PasswordResetController;
 use Illuminate\Support\Facades\Route;
-
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
 
 Route::get('/prueba', function () {
     return response()->json([
@@ -14,13 +11,31 @@ Route::get('/prueba', function () {
     ]);
 });
 
+// ==========================================
+// AUTENTICACIÓN (JWT)
+// ==========================================
 Route::prefix('auth')->group(function () {
-    Route::post('login', [AuthController::class, 'login']);
-    Route::post('register', [AuthController::class, 'register']);
-
-    Route::middleware('auth:api')->group(function () {
-        Route::post('logout', [AuthController::class, 'logout']);
+    // Públicas (con límite de intentos por minuto)
+    Route::middleware('throttle:10,1')->group(function () {
+        Route::post('login', [AuthController::class, 'login']);
+        Route::post('register', [AuthController::class, 'register']);
         Route::post('refresh', [AuthController::class, 'refresh']);
+    });
+
+    Route::middleware('throttle:5,1')->group(function () {
+        Route::post('forgot-password', [PasswordResetController::class, 'forgot']);
+        Route::post('reset-password', [PasswordResetController::class, 'reset']);
+        Route::post('email/resend', [EmailVerificationController::class, 'resend']);
+    });
+
+    // Enlace firmado que llega en el correo de confirmación
+    Route::get('verify-email/{id}/{hash}', [EmailVerificationController::class, 'verify'])
+        ->middleware('throttle:10,1')
+        ->name('verification.verify');
+
+    // Requieren token válido y cuenta activa
+    Route::middleware(['auth:api', 'activo'])->group(function () {
         Route::get('me', [AuthController::class, 'me']);
+        Route::post('logout', [AuthController::class, 'logout']);
     });
 });
