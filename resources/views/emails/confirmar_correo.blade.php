@@ -31,7 +31,7 @@
         <table border="0" cellpadding="0" cellspacing="0" width="100%">
           <tr>
             <td align="center">
-              <a href="{{ .ConfirmationURL }}" style="display: inline-block; padding: 16px 32px; background: linear-gradient(to right, #eab308, #16a34a); color: #ffffff; text-decoration: none; font-weight: 600; border-radius: 12px; font-size: 16px; box-shadow: 0 4px 6px -1px rgba(22, 163, 74, 0.2);">
+              <a href="{{ $url }}" style="display: inline-block; padding: 16px 32px; background: linear-gradient(to right, #eab308, #16a34a); color: #ffffff; text-decoration: none; font-weight: 600; border-radius: 12px; font-size: 16px; box-shadow: 0 4px 6px -1px rgba(22, 163, 74, 0.2);">
                 Verificar mi cuenta
               </a>
             </td>
