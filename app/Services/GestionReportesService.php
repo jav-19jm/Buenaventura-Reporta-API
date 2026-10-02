@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\EstadoReporte;
 use App\Enums\TipoNotificacion;
+use App\Models\ActividadEntidad;
 use App\Models\Entidad;
 use App\Models\Reporte;
 use App\Models\User;
@@ -56,6 +57,16 @@ class GestionReportesService
             $this->insignias->evaluar($reporte->usuario->fresh());
         }
 
+        if ($reporte->id_entidad) {
+            $quien = $responsable->id_entidad === $reporte->id_entidad ? $responsable->email : 'la administración';
+            ActividadEntidad::registrar(
+                $reporte->id_entidad,
+                ActividadEntidad::REPORTE,
+                'Estado de reporte actualizado',
+                "\"{$reporte->titulo}\" pasó de ".self::ETIQUETAS_ESTADO[$anterior->value].' a '.self::ETIQUETAS_ESTADO[$nuevo->value]." (por {$quien})."
+            );
+        }
+
         $this->notificador->notificar(
             [$reporte->id_usuario],
             $nuevo === EstadoReporte::Resuelto ? TipoNotificacion::ReporteResuelto : TipoNotificacion::ReporteActualizado,
@@ -80,6 +91,13 @@ class GestionReportesService
 
         $reporte->forceFill(['id_entidad' => $entidad->id])->save();
         $reporte->registrarHistorial('asignacion_entidad', $responsable, $anterior, $entidad->id);
+
+        ActividadEntidad::registrar(
+            $entidad->id,
+            ActividadEntidad::REPORTE,
+            'Nuevo reporte asignado',
+            "La administración asignó el reporte \"{$reporte->titulo}\" a la entidad."
+        );
 
         $this->notificador->notificar(
             [$reporte->id_usuario],

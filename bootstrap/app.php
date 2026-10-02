@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureUserHasEntity;
 use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\EnsureUserIsActive;
 use Illuminate\Auth\AuthenticationException;
@@ -19,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'activo' => EnsureUserIsActive::class,
             'rol' => EnsureUserHasRole::class,
+            'con_entidad' => EnsureUserHasEntity::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

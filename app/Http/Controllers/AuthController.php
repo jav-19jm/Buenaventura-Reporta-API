@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\RolUsuario;
+use App\Models\ActividadEntidad;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -70,6 +72,16 @@ class AuthController extends Controller
 
         if (! $user->estaActivo()) {
             return self::respuestaCuentaInactiva($user);
+        }
+
+        // Auditoría del panel institucional
+        if ($user->tieneRol(RolUsuario::Entidad) && $user->id_entidad) {
+            ActividadEntidad::registrar(
+                $user->id_entidad,
+                ActividadEntidad::AUTH,
+                'Inicio de sesión',
+                "{$user->email} accedió al panel institucional."
+            );
         }
 
         return $this->respondWithToken(auth('api')->login($user), $user);

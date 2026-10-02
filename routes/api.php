@@ -11,6 +11,7 @@ use App\Http\Controllers\CatalogoController;
 use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\MensajeController;
 use App\Http\Controllers\NotificacionController;
+use App\Http\Controllers\PanelEntidadController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\ReporteController;
 use App\Http\Controllers\UsuarioController;
@@ -138,4 +139,17 @@ Route::middleware(['auth:api', 'activo', 'rol:administrador'])->prefix('admin')-
     Route::post('services', [ServicioAdminController::class, 'store']);
     Route::put('services/{servicio}', [ServicioAdminController::class, 'update']);
     Route::delete('services/{servicio}', [ServicioAdminController::class, 'destroy']);
+});
+
+// ==========================================
+// PANEL DE ENTIDAD (cuenta institucional vinculada a una entidad)
+// El cambio de estado de sus reportes usa PATCH /reports/{reporte}/status
+// ==========================================
+Route::middleware(['auth:api', 'activo', 'con_entidad'])->prefix('entity')->group(function () {
+    Route::get('/', [PanelEntidadController::class, 'show']);
+    Route::put('/', [PanelEntidadController::class, 'update']);
+    Route::post('logo', [PanelEntidadController::class, 'subirLogo']);
+    Route::get('reports', [PanelEntidadController::class, 'reportes']);
+    Route::get('stats', [PanelEntidadController::class, 'estadisticas']);
+    Route::get('activity', [PanelEntidadController::class, 'actividad']);
 });
