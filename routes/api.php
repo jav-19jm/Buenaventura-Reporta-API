@@ -1,10 +1,17 @@
 <?php
 
+use App\Http\Controllers\Admin\EntidadAdminController;
+use App\Http\Controllers\Admin\EstadisticasController;
+use App\Http\Controllers\Admin\NoticiaAdminController;
+use App\Http\Controllers\Admin\ReporteAdminController;
+use App\Http\Controllers\Admin\ServicioAdminController;
+use App\Http\Controllers\Admin\UsuarioAdminController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CatalogoController;
 use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\MensajeController;
 use App\Http\Controllers\NotificacionController;
+use App\Http\Controllers\PanelEntidadController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\ReporteController;
 use App\Http\Controllers\UsuarioController;
@@ -17,6 +24,9 @@ Route::pattern('reporte', $uuid);
 Route::pattern('mensaje', $uuid);
 Route::pattern('notificacion', $uuid);
 Route::pattern('usuario', $uuid);
+Route::pattern('entidad', $uuid);
+Route::pattern('noticia', $uuid);
+Route::pattern('servicio', $uuid);
 
 Route::get('/prueba', function () {
     return response()->json([
@@ -75,6 +85,8 @@ Route::middleware(['auth:api', 'activo'])->group(function () {
     Route::delete('reports/{reporte}', [ReporteController::class, 'destroy']);
     Route::post('reports/{reporte}/image', [ReporteController::class, 'subirImagen']);
     Route::post('reports/{reporte}/votes', [VotoController::class, 'store'])->middleware('throttle:30,1');
+    // Administración o entidad asignada
+    Route::patch('reports/{reporte}/status', [ReporteController::class, 'cambiarEstado']);
 
     // Chat de seguimiento
     Route::get('reports/{reporte}/messages', [MensajeController::class, 'index']);
@@ -90,4 +102,54 @@ Route::middleware(['auth:api', 'activo'])->group(function () {
     // Perfil
     Route::post('users/me/avatar', [UsuarioController::class, 'subirAvatar']);
     Route::post('users/{usuario}/report-abuse', [UsuarioController::class, 'denunciar'])->middleware('throttle:5,1');
+});
+
+// ==========================================
+// PANEL DE ADMINISTRACIÓN
+// ==========================================
+Route::middleware(['auth:api', 'activo', 'rol:administrador'])->prefix('admin')->group(function () {
+    Route::get('stats', EstadisticasController::class);
+
+    // Usuarios
+    Route::get('users', [UsuarioAdminController::class, 'index']);
+    Route::patch('users/{usuario}/status', [UsuarioAdminController::class, 'cambiarEstado']);
+    Route::patch('users/{usuario}/role', [UsuarioAdminController::class, 'cambiarRol']);
+
+    // Reportes
+    Route::get('reports', [ReporteAdminController::class, 'index']);
+    Route::patch('reports/{reporte}/entity', [ReporteAdminController::class, 'asignarEntidad']);
+    Route::delete('reports/{reporte}', [ReporteAdminController::class, 'destroy']);
+
+    // Entidades (con su cuenta institucional)
+    Route::get('entities', [EntidadAdminController::class, 'index']);
+    Route::post('entities', [EntidadAdminController::class, 'store']);
+    Route::put('entities/{entidad}', [EntidadAdminController::class, 'update']);
+    Route::delete('entities/{entidad}', [EntidadAdminController::class, 'destroy']);
+
+    // Noticias
+    Route::get('news', [NoticiaAdminController::class, 'index']);
+    Route::post('news', [NoticiaAdminController::class, 'store']);
+    Route::put('news/{noticia}', [NoticiaAdminController::class, 'update']);
+    Route::patch('news/{noticia}/publish', [NoticiaAdminController::class, 'cambiarPublicacion']);
+    Route::post('news/{noticia}/image', [NoticiaAdminController::class, 'subirImagen']);
+    Route::delete('news/{noticia}', [NoticiaAdminController::class, 'destroy']);
+
+    // Servicios del mapa
+    Route::get('services', [ServicioAdminController::class, 'index']);
+    Route::post('services', [ServicioAdminController::class, 'store']);
+    Route::put('services/{servicio}', [ServicioAdminController::class, 'update']);
+    Route::delete('services/{servicio}', [ServicioAdminController::class, 'destroy']);
+});
+
+// ==========================================
+// PANEL DE ENTIDAD (cuenta institucional vinculada a una entidad)
+// El cambio de estado de sus reportes usa PATCH /reports/{reporte}/status
+// ==========================================
+Route::middleware(['auth:api', 'activo', 'con_entidad'])->prefix('entity')->group(function () {
+    Route::get('/', [PanelEntidadController::class, 'show']);
+    Route::put('/', [PanelEntidadController::class, 'update']);
+    Route::post('logo', [PanelEntidadController::class, 'subirLogo']);
+    Route::get('reports', [PanelEntidadController::class, 'reportes']);
+    Route::get('stats', [PanelEntidadController::class, 'estadisticas']);
+    Route::get('activity', [PanelEntidadController::class, 'actividad']);
 });

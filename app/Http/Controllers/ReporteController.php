@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\EstadoReporte;
 use App\Enums\RolUsuario;
 use App\Http\Requests\StoreReporteRequest;
 use App\Http\Resources\ReporteResource;
 use App\Models\CategoriaReporte;
 use App\Models\Reporte;
+use App\Services\GestionReportesService;
 use App\Services\InsigniaService;
 use App\Support\ArchivosPublicos;
 use Illuminate\Http\JsonResponse;
@@ -14,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 
 class ReporteController extends Controller
 {
@@ -93,6 +96,20 @@ class ReporteController extends Controller
         $reporte->registrarHistorial('eliminado', $request->user());
 
         return response()->json(['message' => 'Reporte eliminado.']);
+    }
+
+    /** Cambio de estado por la administración o la entidad asignada */
+    public function cambiarEstado(Request $request, Reporte $reporte, GestionReportesService $gestion): ReporteResource
+    {
+        Gate::authorize('cambiarEstado', $reporte);
+
+        $validated = $request->validate([
+            'estado' => ['required', Rule::enum(EstadoReporte::class)],
+        ]);
+
+        $reporte = $gestion->cambiarEstado($reporte, EstadoReporte::from($validated['estado']), $request->user());
+
+        return new ReporteResource($reporte->load(['usuario', 'entidad']));
     }
 
     /** Sube o reemplaza la imagen del reporte */
