@@ -2,12 +2,14 @@
 
 namespace App\Services;
 
+use App\Enums\EstadoUsuario;
 use App\Enums\RolUsuario;
 use App\Enums\TipoNotificacion;
 use App\Models\Notificacion;
 use App\Models\Reporte;
 use App\Models\User;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 /**
  * Crea las notificaciones internas (campana del panel).
@@ -19,16 +21,30 @@ class Notificador
      */
     public function notificar(iterable $idsUsuarios, TipoNotificacion $tipo, string $titulo, string $mensaje, ?Reporte $reporte = null): void
     {
-        $filas = collect($idsUsuarios)->unique()->map(fn (string $id) => [
-            'id_usuario' => $id,
-            'id_reporte' => $reporte?->id,
-            'tipo' => $tipo,
-            'titulo' => $titulo,
-            'mensaje' => $mensaje,
-        ]);
+        $ahora = now();
 
-        // create() por fila para generar el UUID y la fecha de creación
-        $filas->each(fn (array $fila) => Notificacion::create($fila));
+        // Inserción masiva por bloques: los avisos generales llegan a todos los ciudadanos
+        collect($idsUsuarios)->unique()->values()
+            ->map(fn (string $id) => [
+                'id' => (string) Str::uuid7(),
+                'id_usuario' => $id,
+                'id_reporte' => $reporte?->id,
+                'tipo' => $tipo->value,
+                'titulo' => $titulo,
+                'mensaje' => $mensaje,
+                'esta_leida' => false,
+                'fecha_creacion' => $ahora,
+            ])
+            ->chunk(500)
+            ->each(fn (Collection $bloque) => Notificacion::insert($bloque->all()));
+    }
+
+    /** @return Collection<int, string> */
+    public function idsCiudadanos(): Collection
+    {
+        return User::where('rol', RolUsuario::Ciudadano)
+            ->where('estado', EstadoUsuario::Activo)
+            ->pluck('id');
     }
 
     /** @return Collection<int, string> */
@@ -47,6 +63,7 @@ class Notificador
         }
 
         return User::where('id_entidad', $reporte->id_entidad)
+            ->where('rol', RolUsuario::Entidad)
             ->when($excepto, fn ($q) => $q->whereKeyNot($excepto->id))
             ->pluck('id');
     }

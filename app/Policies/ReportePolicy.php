@@ -14,6 +14,13 @@ class ReportePolicy
         return $reporte->id_usuario === $user->id;
     }
 
+    /** Cambiar el estado: administración o la entidad asignada al reporte */
+    public function cambiarEstado(User $user, Reporte $reporte): bool
+    {
+        return $user->tieneRol(RolUsuario::Administrador, RolUsuario::Moderador)
+            || ($user->tieneRol(RolUsuario::Entidad) && $user->id_entidad !== null && $user->id_entidad === $reporte->id_entidad);
+    }
+
     /**
      * Chat de seguimiento: autor, administración y la entidad asignada.
      */
