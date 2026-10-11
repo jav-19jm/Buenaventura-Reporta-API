@@ -7,41 +7,45 @@ use App\Models\CategoriaReporte;
 use App\Models\Entidad;
 use App\Models\Noticia;
 use App\Models\Servicio;
+use App\Support\CacheCatalogo;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 /**
  * Catálogos de lectura pública que alimentan el mapa y los formularios.
+ * Se sirven desde caché; los modelos la invalidan al modificarse.
  */
 class CatalogoController extends Controller
 {
     /** Categorías de incidencia disponibles para reportar */
     public function categorias(): JsonResponse
     {
-        return response()->json(CategoriaReporte::activas()->orderBy('nombre')->get());
+        return response()->json(CacheCatalogo::recordar(CacheCatalogo::CATEGORIAS,
+            fn () => CategoriaReporte::activas()->orderBy('nombre')->get()->toArray()));
     }
 
     /** Entidades activas (selector de entidad responsable) */
     public function entidades(): JsonResponse
     {
-        return response()->json(Entidad::activas()->orderBy('nombre')->get());
+        return response()->json(CacheCatalogo::recordar(CacheCatalogo::ENTIDADES,
+            fn () => Entidad::activas()->orderBy('nombre')->get()->toArray()));
     }
 
     /** Servicios de la ciudad que se muestran en el mapa */
     public function servicios(): JsonResponse
     {
-        return response()->json(Servicio::activos()->orderBy('nombre')->get());
+        return response()->json(CacheCatalogo::recordar(CacheCatalogo::SERVICIOS,
+            fn () => Servicio::activos()->orderBy('nombre')->get()->toArray()));
     }
 
     /** Noticias publicadas, las más recientes primero */
-    public function noticias(): AnonymousResourceCollection
+    public function noticias(): JsonResponse
     {
-        $noticias = Noticia::publicadas()
-            ->with('entidad')
-            ->orderByDesc('fecha_publicacion')
-            ->orderByDesc('fecha_creacion')
-            ->get();
-
-        return NoticiaResource::collection($noticias);
+        return response()->json(CacheCatalogo::recordar(CacheCatalogo::NOTICIAS, fn () => NoticiaResource::collection(
+            Noticia::publicadas()
+                ->with('entidad')
+                ->orderByDesc('fecha_publicacion')
+                ->orderByDesc('fecha_creacion')
+                ->get()
+        )->resolve()));
     }
 }

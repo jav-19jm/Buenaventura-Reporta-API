@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\RolUsuario;
 use App\Enums\TipoNotificacion;
 use App\Enums\TipoRemitente;
+use App\Events\ChatActualizado;
 use App\Http\Resources\MensajeResource;
 use App\Models\Mensaje;
 use App\Models\Reporte;
@@ -52,6 +53,7 @@ class MensajeController extends Controller
         ]);
 
         $this->notificarParticipantes($reporte, $user, $tipo);
+        ChatActualizado::dispatch($reporte->id, 'creado');
 
         return (new MensajeResource($mensaje->load('remitente')))->response()->setStatusCode(201);
     }
@@ -66,6 +68,7 @@ class MensajeController extends Controller
         ]);
 
         $mensaje->update($validated);
+        ChatActualizado::dispatch($mensaje->id_reporte, 'editado');
 
         return new MensajeResource($mensaje->load('remitente'));
     }
@@ -75,6 +78,7 @@ class MensajeController extends Controller
         $this->asegurarEditable($request->user(), $mensaje, 'eliminar');
 
         $mensaje->delete();
+        ChatActualizado::dispatch($mensaje->id_reporte, 'eliminado');
 
         return response()->json(['message' => 'Mensaje eliminado.']);
     }

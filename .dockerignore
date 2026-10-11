@@ -1,0 +1,21 @@
+# Nada de secretos ni dependencias locales dentro de la imagen
+.env
+.env.*
+!.env.example
+.git
+.github
+vendor
+node_modules
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/app/public/*
+bootstrap/cache/*.php
+public/storage
+database/database.sqlite
+.phpunit.result.cache
+.idea
+.vscode
+*.log
+docker-compose*.yml

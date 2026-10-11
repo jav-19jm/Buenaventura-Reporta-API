@@ -25,6 +25,14 @@ class SessionTest extends TestCase
         $this->getJson('/api/auth/me')->assertUnauthorized();
     }
 
+    public function test_sin_token_y_sin_cabecera_accept_tambien_responde_401_en_json(): void
+    {
+        // Clientes como curl o webhooks no siempre envían "Accept: application/json"
+        $this->post('/api/reports', [])
+            ->assertUnauthorized()
+            ->assertJsonPath('message', 'No autenticado. Inicia sesión nuevamente.');
+    }
+
     public function test_me_devuelve_el_perfil_del_usuario_autenticado(): void
     {
         $user = User::factory()->administrador()->create();

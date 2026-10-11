@@ -3,14 +3,19 @@
 namespace App\Notifications;
 
 use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 
 /**
  * Correo de recuperación de contraseña. El enlace apunta a la pantalla
  * /reset-password del frontend con el token y el correo como parámetros.
+ * Se envía en segundo plano (cola de Redis).
  */
-class RestablecerPassword extends ResetPassword
+class RestablecerPassword extends ResetPassword implements ShouldQueue
 {
+    use Queueable;
+
     public function toMail($notifiable): MailMessage
     {
         return (new MailMessage)

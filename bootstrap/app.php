@@ -16,7 +16,20 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
+    // Autorización de canales privados de WebSocket con el token JWT: POST /api/broadcasting/auth
+    ->withBroadcasting(
+        __DIR__.'/../routes/channels.php',
+        ['prefix' => 'api', 'middleware' => ['api', 'auth:api', 'activo']],
+    )
     ->withMiddleware(function (Middleware $middleware): void {
+        // En Docker la API está detrás del nginx del frontend: se respetan las cabeceras
+        // X-Forwarded-* para que las URLs (firmadas, storage) usen el host y esquema públicos.
+        $middleware->trustProxies(at: '*');
+
+        // API sin ruta "login": un invitado recibe 401 en JSON (aunque no envíe Accept: application/json)
+        // en lugar de un intento de redirección que terminaba en error 500.
+        $middleware->redirectGuestsTo(fn (Request $request) => $request->is('api/*') ? null : '/');
+
         $middleware->alias([
             'activo' => EnsureUserIsActive::class,
             'rol' => EnsureUserHasRole::class,

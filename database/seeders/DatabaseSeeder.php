@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\RolUsuario;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -17,15 +18,16 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(CatalogoSeeder::class);
 
-        // Administrador inicial (credenciales desde el .env)
+        // Administrador inicial (credenciales desde el .env). Sin factory: en la imagen
+        // de producción no se instala Faker (dependencia de desarrollo).
         $adminEmail = env('ADMIN_EMAIL', 'admin@buenaventura.local');
         if (! User::where('email', $adminEmail)->exists()) {
-            User::factory()->administrador()->create([
+            $admin = new User([
                 'nombre_completo' => 'Administrador',
                 'email' => $adminEmail,
                 'password' => env('ADMIN_PASSWORD', 'password'),
-                'telefono' => null,
             ]);
+            $admin->forceFill(['rol' => RolUsuario::Administrador, 'email_verified_at' => now()])->save();
         }
 
         // Ciudadano y datos de prueba solo en entornos locales

@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Enums\EstadoUsuario;
 use App\Enums\RolUsuario;
 use App\Enums\TipoNotificacion;
+use App\Events\AvisoGeneral;
+use App\Events\NotificacionCreada;
 use App\Models\Notificacion;
 use App\Models\Reporte;
 use App\Models\User;
@@ -19,12 +21,14 @@ class Notificador
     /**
      * @param  iterable<string>  $idsUsuarios
      */
+    /** A partir de cuántos destinatarios se emite un solo aviso público en lugar de uno por usuario */
+    private const LIMITE_EVENTOS_INDIVIDUALES = 25;
+
     public function notificar(iterable $idsUsuarios, TipoNotificacion $tipo, string $titulo, string $mensaje, ?Reporte $reporte = null): void
     {
         $ahora = now();
 
-        // Inserción masiva por bloques: los avisos generales llegan a todos los ciudadanos
-        collect($idsUsuarios)->unique()->values()
+        $filas = collect($idsUsuarios)->unique()->values()
             ->map(fn (string $id) => [
                 'id' => (string) Str::uuid7(),
                 'id_usuario' => $id,
@@ -34,9 +38,24 @@ class Notificador
                 'mensaje' => $mensaje,
                 'esta_leida' => false,
                 'fecha_creacion' => $ahora,
-            ])
-            ->chunk(500)
-            ->each(fn (Collection $bloque) => Notificacion::insert($bloque->all()));
+            ]);
+
+        if ($filas->isEmpty()) {
+            return;
+        }
+
+        // Inserción masiva por bloques: los avisos generales llegan a todos los ciudadanos
+        $filas->chunk(500)->each(fn (Collection $bloque) => Notificacion::insert($bloque->all()));
+
+        // Tiempo real (Reverb): los eventos se encolan en Redis y no frenan la petición
+        if ($filas->count() > self::LIMITE_EVENTOS_INDIVIDUALES) {
+            AvisoGeneral::dispatch($titulo, $mensaje);
+        } else {
+            $filas->each(fn (array $fila) => NotificacionCreada::dispatch([
+                ...$fila,
+                'fecha_creacion' => $ahora->toIso8601String(),
+            ]));
+        }
     }
 
     /** @return Collection<int, string> */
