@@ -1,8 +1,9 @@
 <?php
 
 use App\Providers\AppServiceProvider;
+use Tymon\JWTAuth\Providers\LaravelServiceProvider;
 
 return [
     AppServiceProvider::class,
-    Tymon\JWTAuth\Providers\LaravelServiceProvider::class,
+    LaravelServiceProvider::class,
 ];
