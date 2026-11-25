@@ -19,3 +19,6 @@ database/database.sqlite
 .vscode
 *.log
 docker-compose*.yml
+
+# Pipeline de CI/CD: no forma parte de la imagen
+Jenkinsfile
