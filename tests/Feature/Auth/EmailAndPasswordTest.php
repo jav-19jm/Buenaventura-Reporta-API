@@ -92,6 +92,23 @@ class EmailAndPasswordTest extends TestCase
         $this->assertStringContainsString(e($recuperacion->frontendUrl($user)), $html);
     }
 
+    public function test_las_plantillas_de_correo_usan_la_marca_y_saludan_por_el_nombre(): void
+    {
+        config(['app.frontend_url' => 'https://buenaventura-reporta.tech']);
+        $user = User::factory()->unverified()->create(['nombre_completo' => 'Ana María Pérez']);
+
+        $correos = [
+            (string) (new VerificarCorreo)->toMail($user)->render(),
+            (string) (new RestablecerPassword('token-de-prueba'))->toMail($user)->render(),
+        ];
+
+        foreach ($correos as $html) {
+            $this->assertStringContainsString('Hola, Ana:', $html);
+            $this->assertStringContainsString('https://buenaventura-reporta.tech/email/logo.png', $html);
+            $this->assertStringContainsString('vence en <strong>60 minutos</strong>', $html);
+        }
+    }
+
     public function test_restablecer_contrasena_con_token_invalido_responde_422(): void
     {
         User::factory()->create(['email' => 'ana@example.com']);

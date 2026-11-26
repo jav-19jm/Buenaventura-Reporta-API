@@ -6,6 +6,7 @@ use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Support\Str;
 
 /**
  * Correo de confirmación de cuenta con la plantilla propia de la plataforma.
@@ -22,6 +23,10 @@ class VerificarCorreo extends VerifyEmail implements ShouldQueue
     {
         return (new MailMessage)
             ->subject('Verifica tu cuenta - Buenaventura Reporta')
-            ->view('emails.confirmar_correo', ['url' => $this->verificationUrl($notifiable)]);
+            ->view('emails.confirmar_correo', [
+                'url' => $this->verificationUrl($notifiable),
+                'nombre' => Str::of($notifiable->nombre_completo ?? '')->trim()->before(' ')->toString(),
+                'minutos' => (int) config('auth.verification.expire', 60),
+            ]);
     }
 }
